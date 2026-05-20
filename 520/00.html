@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>520</title>
+    <style>
+        /* 陰鬱藍底，預留背景顏色漸變動畫 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2b3a4a;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 2.5s ease;
+        }
+
+        /* 溫馨特效：大量背景漂浮微光 */
+        .firefly {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: rgba(255, 245, 200, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(255, 245, 200, 0.4);
+            animation: float 12s infinite ease-in-out;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(105vh) scale(0.5); opacity: 0; }
+            15% { opacity: 0.9; }
+            85% { opacity: 0.7; }
+            100% { transform: translateY(-10vh) scale(1.3); opacity: 0; }
+        }
+
+        /* 主容器 */
+        #game-container {
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px 50px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 10;
+            width: 80%;
+            max-width: 400px;
+            transition: opacity 0.8s ease;
+        }
+
+        /* 深色字 */
+        h2, p {
+            color: #1a252c;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            line-height: 1.6;
+        }
+
+        /* 淺藍色輸入框 */
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background-color: #b3d4e5;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #1a252c;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s;
+        }
+        
+        input:focus {
+            border: 2px solid #8ab8cf;
+        }
+
+        /* 白色確認/開始按鈕 */
+        button {
+            background-color: #ffffff;
+            color: #1a252c;
+            border: 1px solid #ccc;
+            padding: 12px 35px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        /* 錯誤提示文字 */
+        #error-msg {
+            color: #d9534f;
+            font-size: 14px;
+            margin-top: 10px;
+            height: 20px;
+        }
+
+        /* 結局專屬排版 */
+        .ending-text {
+            font-size: 18px;
+            color: #1a252c;
+            line-height: 2;
+        }
+        
+        .signature {
+            display: block;
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: right;
+            color: #4a5a6a;
+        }
+
+        /* 強制提示畫面 */
+        #hint-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(43, 58, 74, 0.9);
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #fff;
+            transition: background 1s ease;
+        }
+        
+        #hint-modal p {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        /* 網頁下方律動波浪線 SVG 容器 */
+        .wave-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            z-index: 5;
+            pointer-events: none;
+            transition: opacity 2s ease;
+        }
+
+        .wave-path {
+            fill: none;
+            stroke: rgba(179, 212, 229, 0.4);
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 音樂播放器 -->
+    <audio id="bgm" loop>
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 背景微光特效容器 -->
+    <div id="particles"></div>
+
+    <!-- 網頁下方律動波浪 -->
+    <div class="wave-container" id="wave-box">
+        <svg width="100%" height="80px" viewBox="0 0 1440 80" preserveAspectRatio="none">
+            <path class="wave-path" id="wave1" d="M 0 40 Q 360 40 720 40 T 1440 40" />
+            <path class="wave-path" id="wave2" d="M 0 40 Q 360 40 720 40 T 1440 40" stroke-opacity="0.6" stroke-width="2" />
+        </svg>
+    </div>
+
+    <!-- 強制提示畫面 -->
+    <div id="hint-modal">
+        <p id="hint-text">正確答案是...</p>
+        <button onclick="forceNext()">我知道</button>
+    </div>
+
+    <!-- 遊戲主體 -->
+    <div id="game-container">
+        <h2>請回答以下問題</h2>
+        <p style="font-size: 14px; color: #556677; margin-bottom: 30px;">準備好後，點擊下方按鈕開始問卷。</p>
+        <button id="start-btn" onclick="startGame()">開始問卷</button>
+    </div>
+
+    <script>
+        // 產生大量背景溫馨微光 (增加到 40 個)
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 40; i++) {
+            let firefly = document.createElement('div');
+            firefly.classList.add('firefly');
+            firefly.style.left = Math.random() * 100 + 'vw';
+            firefly.style.animationDuration = (Math.random() * 6 + 7) + 's'; // 稍微錯開時間顯得自然
+            firefly.style.animationDelay = Math.random() * 8 + 's';
+            particlesContainer.appendChild(firefly);
+        }
+
+        // 下方波浪律動動畫邏輯
+        let count = 0;
+        function animateWaves() {
+            count += 0.04;
+            // 模擬隨音樂起伏的平滑正弦波
+            let amp1 = 20 + Math.sin(count * 0.8) * 10;
+            let amp2 = 15 + Math.cos(count * 1.1) * 8;
+            
+            let y1 = 40 + Math.sin(count) * 5;
+            let y2 = 40 + Math.cos(count * 1.5) * 5;
+
+            document.getElementById('wave1').setAttribute('d', `M 0 ${y1} Q 360 ${y1 - amp1} 720 ${y1} T 1440 ${y1 + amp1}`);
+            document.getElementById('wave2').setAttribute('d', `M 0 ${y2} Q 360 ${y2 + amp2} 720 ${y2} T 1440 ${y2 - amp2}`);
+            
+            requestAnimationFrame(animateWaves);
+        }
+        animateWaves();
+
+        // 遊戲狀態變數
+        let currentStep = 0; // 0 代表尚未開始
+        let mistakeCount = 0;
+        let pendingNextStep = 2;
+
+        const gameContainer = document.getElementById("game-container");
+        const hintModal = document.getElementById("hint-modal");
+        const hintText = document.getElementById("hint-text");
+        const bgm = document.getElementById("bgm");
+        
+        // 鎖定音量在一半 (50%)
+        bgm.volume = 0.5;
+
+        // 點擊「開始問卷」觸發
+        function startGame() {
+            // 播放音樂
+            bgm.play().catch(err => console.log("播放被阻擋:", err));
+            
+            // 切換到第 1 題
+            gameContainer.style.opacity = 0;
+            setTimeout(() => {
+                currentStep = 1;
+                gameContainer.innerHTML = `
+                    <h2 id="question-text">1. 請問你是洋的誰</h2>
+                    <input type="text" id="answer-input" placeholder="請輸入答案..." autocomplete="off">
+                    <button id="submit-btn" onclick="checkAnswer()">確認</button>
+                    <div id="error-msg"></div>
+                `;
+                gameContainer.style.opacity = 1;
+                bindInputListener();
+            }, 500);
+        }
+
+        // 綁定輸入框 Enter 監聽器
+        function bindInputListener() {
+            const aInput = document.getElementById("answer-input");
+            if (aInput) {
+                aInput.focus();
+                aInput.addEventListener("keypress", function(event) {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        checkAnswer();
+                    }
+                });
+            }
+        }
+
+        function checkAnswer() {
+            const aInput = document.getElementById("answer-input");
+            const errorMsg = document.getElementById("error-msg");
+            let ans = aInput.value.trim();
+            errorMsg.innerText = "";
+
+            if (ans === "") {
+                errorMsg.innerText = "請輸入些什麼吧...";
+                return;
+            }
+
+            if (currentStep === 1) {
+                const validAnswers = ["墨", "月亮", "呆呆", "靈墨"];
+                if (validAnswers.includes(ans)) {
+                    transitionToStep(2);
+                } else {
+                    handleMistake("正確答案是：墨 或 月亮 或 呆呆 或 靈墨", 2);
+                }
+            } 
+            else if (currentStep === 2) {
+                if (ans === "精度" || ans === "只要是你") { // 保留容錯
+                    transitionToStep(3);
+                } else if (ans === "只要是你") {
+                    transitionToStep(3);
+                } else {
+                    handleMistake("正確答案是：只要是你", 3);
+                }
+            } 
+            else if (currentStep === 3) {
+                showEnding();
+            }
+        }
+
+        function handleMistake(correctAnswerText, nextStep) {
+            mistakeCount++;
+            if (mistakeCount >= 2) {
+                pendingNextStep = nextStep;
+                hintText.innerText = correctAnswerText;
+                hintModal.style.display = "flex";
+            } else {
+                document.getElementById("error-msg").innerText = "好像不對喔，再試一次？";
+                document.getElementById("answer-input").value = "";
+            }
+        }
+
+        function forceNext() {
+            hintModal.style.display = "none";
+            transitionToStep(pendingNextStep);
+        }
+
+        function transitionToStep(step) {
+            gameContainer.style.opacity = 0;
+            
+            setTimeout(() => {
+                currentStep = step;
+                mistakeCount = 0;
+                
+                if (step === 2) {
+                    gameContainer.innerHTML = `
+                        <h2 id="question-text">2. 喜歡甚麼姿勢</h2>
+                        <input type="text" id="answer-input" placeholder="請輸入答案..." autocomplete="off">
+                        <button id="submit-btn" onclick="checkAnswer()">確認</button>
+                        <div id="error-msg"></div>
+                    `;
+                } else if (step === 3) {
+                    gameContainer.innerHTML = `
+                        <h2 id="question-text">3. 愛是甚麼</h2>
+                        <input type="text" id="answer-input" placeholder="請輸入答案..." autocomplete="off">
+                        <button id="submit-btn" onclick="checkAnswer()">確認</button>
+                        <div id="error-msg"></div>
+                    `;
+                }
+                
+                gameContainer.style.opacity = 1;
+                bindInputListener();
+            }, 500);
+        }
+
+        function showEnding() {
+            gameContainer.style.opacity = 0;
+            
+            // 隱藏下方的波浪線
+            document.getElementById('wave-box').style.opacity = 0;
+            
+            setTimeout(() => {
+                gameContainer.innerHTML = `
+                    <div class="ending-text">
+                        「下次分離的時候...<br>不要再說『再見』這種悲傷的話了......<br>我想你了」
+                        <span class="signature">-洋 2026.05.20.</span>
+                    </div>
+                `;
+                // 結局背景徹底轉為黑色
+                document.body.style.backgroundColor = "#000000";
+                hintModal.style.background = "rgba(0, 0, 0, 0.95)";
+                gameContainer.style.opacity = 1;
+            }, 800);
+        }
+    </script>
+</body>
+</html>
